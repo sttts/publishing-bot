@@ -380,7 +380,7 @@ sync_repo() {
             squash ${squash_commits}
 
             # if there is no pending merge commit, update Godeps.json because this could be a target of tag
-            if [ -z "${k_pending_merge_commit}" ]; then
+            if ! pick-incorrect-godep-changes ${k_mainline_commit} && [ -z "${k_pending_merge_commit}" ]; then
                 fix-godeps "${deps}" "${required_packages}" "${base_package}" "${is_library}" ${dst_needs_godeps_update} true ${commit_msg_tag} "${recursive_delete_pattern}"
                 dst_needs_godeps_update=false
                 dst_merge_point_commit=$(git rev-parse HEAD)
@@ -484,9 +484,11 @@ sync_repo() {
             # we would end up with "base B + change B" which misses the change A changes.
             amend-godeps-at ${f_mainline_commit}
 
-            fix-godeps "${deps}" "${required_packages}" "${base_package}" "${is_library}" ${dst_needs_godeps_update} true ${commit_msg_tag} "${recursive_delete_pattern}"
-            dst_needs_godeps_update=false
-            dst_merge_point_commit=$(git rev-parse HEAD)
+            if ! pick-incorrect-godep-changes ${k_mainline_commit}; then
+                fix-godeps "${deps}" "${required_packages}" "${base_package}" "${is_library}" ${dst_needs_godeps_update} true ${commit_msg_tag} "${recursive_delete_pattern}"
+                dst_needs_godeps_update=false
+                dst_merge_point_commit=$(git rev-parse HEAD)
+            fi
         fi
 
         ensure-clean-working-dir
@@ -520,6 +522,14 @@ function pick-merge-as-single-commit() {
 25ebf875b4235cb8f43be2aec699d62e78339cec
 8014d73345233c773891f26008e55dc3b5232c7c
 536cee71b4dcb74fa7c80fdd6a709cdbf970e4a2
+EOF
+}
+
+# if a PR added incorrect godep changes (eg: client-go depending on apiserver), godeps update will fail.
+# so we skip godeps generation for these commits.
+function pick-incorrect-godep-changes() {
+    grep -F -q -x "$1" <<EOF
+e2a017327c1af628f4f0069cbd49865ad1e81975
 EOF
 }
 
