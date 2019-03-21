@@ -4,9 +4,10 @@ metadata:
   name: publisher-config
 data:
   config: |
-    source-org: kubernetes
+    source-org: liggitt
     source-repo: kubernetes
+    base-package: k8s.io
     target-org: kubernetes-nightly
-    rules-file: https://raw.githubusercontent.com/kubernetes/kubernetes/master/staging/publishing/rules.yaml
+    rules-file: https://raw.githubusercontent.com/sttts/kubernetes/sttts-go-mod-rules/staging/publishing/rules.yaml
     # github-issue: 56876
     dry-run: false
