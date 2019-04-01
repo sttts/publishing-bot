@@ -843,19 +843,17 @@ update-deps-in-gomod() {
     local dep_count=${#deps_array[@]}
     local base_package=${2}
 
-    # drop peer references
-    if grep -q "// BEGIN STAGING REPLACE" go.mod; then
-    	sed -i '/\/\/ BEGIN STAGING REPLACE/,/\/\/ END STAGING REPLACE/d' your_file
-    fi
-
     for (( i=0; i<${dep_count}; i++ )); do
         local dep="${deps_array[i]%%:*}"
         local dep_commit=$(cd ../${dep}; gomod-pseudo-version)
         echo "Updating ${base_package}/${dep} to point to ${dep_commit}"
-	sed -i -e "s,\\b${base_package}/${dep} .*,${base_package}/${dep} ${dep_commit}," go.mod
+        GO111MODULE=on go mod edit -fmt -require "${base_package}/${dep}@${dep_commit}"
+        GO111MODULE=on go mod edit -fmt -replace "${base_package}/${dep}=${base_package}/${dep}@${dep_commit}"
     done
 
-    git add go.mod
+    GO111MODULE=on go mod edit -json | jq -r '.Replace[]? | select(.New.Path | startswith("../")) | "-dropreplace \(.Old.Path)"' | GO111MODULE=on xargs -L 100 go mod edit -fmt
+    GOPROXY="file://${GOPATH}/pkg/mod/cache/download" GO111MODULE=on go mod tidy
+    git add go.mod go.sum
 
     # check if there are new contents
     if git-index-clean; then
