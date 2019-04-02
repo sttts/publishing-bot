@@ -99,8 +99,6 @@ func main() {
 }
 
 var (
-	// https://tip.golang.org/cmd/go/#hdr-Module_compatibility_and_semantic_versioning
-	semverTag = regexp.MustCompile(`^(v[0-9.]+)(\+incompatible)?$`)
 	// https://tip.golang.org/cmd/go/#hdr-Pseudo_versions
 	pseudoVersion = regexp.MustCompile(`(-0\.|\.0\.|-)\d{14}-([0-9a-f]{12})(\+incompatible)?$`)
 )
@@ -115,16 +113,12 @@ func versionToRev(path, version string) (string, error) {
 		}
 		return sha, nil
 
-	// non-module tag (v2.0.0+incompatible or v2.0.0)
-	case semverTag.FindStringSubmatch(version) != nil:
-		tag := semverTag.FindStringSubmatch(version)[1]
-		if tag == "v0.0.0" {
+	default:
+		if version == "v0.0.0" {
 			return "", fmt.Errorf("unknown version tag: %q: %q", path, version)
 		}
-		return tag, nil
-
-	default:
-		return "", fmt.Errorf("unknown version format: %q: %q", path, version)
+		// https://tip.golang.org/cmd/go/#hdr-Module_compatibility_and_semantic_versioning
+		return strings.TrimSuffix(version, "+incompatible"), nil
 	}
 }
 
